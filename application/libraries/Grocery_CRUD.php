@@ -16,7 +16,7 @@
  * @package    	grocery CRUD
  * @copyright  	Copyright (c) 2010 through 2014, John Skoumbourdis
  * @license    	https://github.com/scoumbourdis/grocery-crud/blob/master/license-grocery-crud.txt
- * @version    	1.5.8
+ * @version    	1.6.1
  * @author     	John Skoumbourdis <scoumbourdisj@gmail.com>
  */
 
@@ -473,7 +473,7 @@ class grocery_CRUD_Field_Types
  *
  * @package    	grocery CRUD
  * @author     	John Skoumbourdis <scoumbourdisj@gmail.com>
- * @version    	1.5.8
+ * @version    	1.6.1
  * @link		http://www.grocerycrud.com/documentation
  */
 class grocery_CRUD_Model_Driver extends grocery_CRUD_Field_Types
@@ -585,7 +585,7 @@ class grocery_CRUD_Model_Driver extends grocery_CRUD_Field_Types
 			$this->order_by($state_info->order_by[0],$state_info->order_by[1]);
 		}
 
-		if(!empty($state_info->search))
+		if(isset($state_info->search) && $state_info->search !== '')
 		{
 			if (!empty($this->relation)) {
 				foreach ($this->relation as $relation_name => $relation_values) {
@@ -1387,7 +1387,28 @@ class grocery_CRUD_Model_Driver extends grocery_CRUD_Field_Types
 		return $values;
 	}
 
-	protected function get_relation_n_n_selection_array($primary_key_value, $field_info)
+    protected function get_clone_values($primary_key_value)
+    {
+        $values = $this->basic_model->get_edit_values($primary_key_value);
+
+        $types 	= $this->get_field_types();
+        foreach ($values as $fieldName => $fieldType) {
+            if ($types[$fieldName . '']->crud_type == 'upload_file') {
+                $values->$fieldName = '';
+            }
+        }
+
+        if(!empty($this->relation_n_n)) {
+            foreach($this->relation_n_n as $field_name => $field_info) {
+                $values->$field_name = $this->get_relation_n_n_selection_array($primary_key_value, $field_info);
+            }
+        }
+
+        return $values;
+    }
+
+
+    protected function get_relation_n_n_selection_array($primary_key_value, $field_info)
 	{
 		return $this->basic_model->get_relation_n_n_selection_array($primary_key_value, $field_info);
 	}
@@ -1563,7 +1584,7 @@ class grocery_CRUD_Model_Driver extends grocery_CRUD_Field_Types
  *
  * @package    	grocery CRUD
  * @author     	John Skoumbourdis <scoumbourdisj@gmail.com>
- * @version    	1.5.8
+ * @version    	1.6.1
  */
 class grocery_CRUD_Layout extends grocery_CRUD_Model_Driver
 {
@@ -1609,6 +1630,7 @@ class grocery_CRUD_Layout extends grocery_CRUD_Model_Driver
 		$data->primary_key 			= $this->get_primary_key();
 		$data->add_url				= $this->getAddUrl();
 		$data->edit_url				= $this->getEditUrl();
+		$data->clone_url			= $this->getCloneUrl();
 		$data->delete_url			= $this->getDeleteUrl();
         $data->delete_multiple_url	= $this->getDeleteMultipleUrl();
 		$data->read_url				= $this->getReadUrl();
@@ -1622,6 +1644,7 @@ class grocery_CRUD_Layout extends grocery_CRUD_Model_Driver
 
 		$data->unset_add			= $this->unset_add;
 		$data->unset_edit			= $this->unset_edit;
+		$data->unset_clone			= $this->unset_clone;
 		$data->unset_read			= $this->unset_read;
 		$data->unset_delete			= $this->unset_delete;
 		$data->unset_export			= $this->unset_export;
@@ -1643,6 +1666,7 @@ class grocery_CRUD_Layout extends grocery_CRUD_Model_Driver
 			$data->list[$num_row]->edit_url = $data->edit_url.'/'.$row->{$data->primary_key};
 			$data->list[$num_row]->delete_url = $data->delete_url.'/'.$row->{$data->primary_key};
 			$data->list[$num_row]->read_url = $data->read_url.'/'.$row->{$data->primary_key};
+            $data->list[$num_row]->clone_url = $data->clone_url.'/'.$row->{$data->primary_key};
 		}
 
 		if(!$ajax)
@@ -1879,7 +1903,38 @@ class grocery_CRUD_Layout extends grocery_CRUD_Model_Driver
 		$this->_get_ajax_results();
 	}
 
-	protected function showEditForm($state_info)
+    protected function showCloneForm($state_info)
+    {
+        $this->set_js_lib($this->default_javascript_path.'/'.grocery_CRUD::JQUERY);
+
+        $data 				= $this->get_common_data();
+        $data->types 		= $this->get_field_types();
+
+        $data->field_values = $this->get_edit_values($state_info->primary_key);
+
+        $data->add_url		= $this->getAddUrl();
+        $data->list_url 	= $this->getListUrl();
+        $data->update_url	= $this->getInsertUrl();
+        $data->delete_url	= $this->getDeleteUrl($state_info);
+        $data->read_url		= $this->getReadUrl($state_info->primary_key);
+        $data->input_fields = $this->get_edit_input_fields($data->field_values);
+        $data->unique_hash			= $this->get_method_hash();
+
+        $data->fields 		= $this->get_edit_fields();
+        $data->hidden_fields	= $this->get_edit_hidden_fields();
+        $data->unset_back_to_list	= $this->unset_back_to_list;
+
+        $data->validation_url	= $this->getValidationInsertUrl();
+        $data->is_ajax 			= $this->_is_ajax();
+
+        $this->_theme_view('edit.php',$data);
+        $this->_inline_js("var js_date_format = '".$this->js_date_format."';");
+
+        $this->_get_ajax_results();
+    }
+
+
+    protected function showEditForm($state_info)
 	{
 		$this->set_js_lib($this->default_javascript_path.'/'.grocery_CRUD::JQUERY);
 
@@ -1889,7 +1944,6 @@ class grocery_CRUD_Layout extends grocery_CRUD_Model_Driver
 		$data->field_values = $this->get_edit_values($state_info->primary_key);
 
 		$data->add_url		= $this->getAddUrl();
-
 		$data->list_url 	= $this->getListUrl();
 		$data->update_url	= $this->getUpdateUrl($state_info);
 		$data->delete_url	= $this->getDeleteUrl($state_info);
@@ -3045,7 +3099,7 @@ class grocery_CRUD_Layout extends grocery_CRUD_Model_Driver
  *
  * @package    	grocery CRUD
  * @author     	John Skoumbourdis <scoumbourdisj@gmail.com>
- * @version    	1.5.8
+ * @version    	1.6.1
  */
 class grocery_CRUD_States extends grocery_CRUD_Layout
 {
@@ -3055,9 +3109,9 @@ class grocery_CRUD_States extends grocery_CRUD_Layout
     const STATE_EDIT = 3;
     const STATE_DELETE = 4;
     const STATE_INSERT = 5;
-
     const STATE_READ = 18;
-    const STATE_DELETE_MULTIPLE = '19';
+    const STATE_DELETE_MULTIPLE = 19;
+    const STATE_CLONE = 20;
 
 	protected $states = array(
 		0	=> 'unknown',
@@ -3079,7 +3133,8 @@ class grocery_CRUD_States extends grocery_CRUD_Layout
 		16  => 'export',
 		17  => 'print',
 		18  => 'read',
-        19  => 'delete_multiple'
+        19  => 'delete_multiple',
+        20  => 'clone'
 	);
 
     public function getStateInfo()
@@ -3122,6 +3177,15 @@ class grocery_CRUD_States extends grocery_CRUD_Layout
                     $state_info = (object) array('ids' => $_POST['ids']);
                 } else {
                     throw new Exception('On the state "Delete Multiple" you need send the ids as a post array.');
+                    die();
+                }
+                break;
+
+            case self::STATE_CLONE:
+                if ($first_parameter !== null) {
+                    $state_info = (object) array('primary_key' => $first_parameter);
+                } else {
+                    throw new Exception('On the state "clone" the Primary key cannot be null', 20);
                     die();
                 }
                 break;
@@ -3180,7 +3244,7 @@ class grocery_CRUD_States extends grocery_CRUD_Layout
                 {
                     $state_info->order_by = $data['order_by'];
                 }
-                if(!empty($data['search_text']))
+                if(isset($data['search_text']) && $data['search_text'] !== '')
                 {
                     if(empty($data['search_field']))
                     {
@@ -3192,7 +3256,7 @@ class grocery_CRUD_States extends grocery_CRUD_Layout
                         if (is_array($data['search_field'])) {
                             $search_array = array();
                             foreach ($data['search_field'] as $search_key => $search_field_name) {
-                                $search_array[$search_field_name] = !empty($data['search_text'][$search_key]) ? $data['search_text'][$search_key] : '';
+                                $search_array[$search_field_name] = isset($data['search_text'][$search_key]) ? $data['search_text'][$search_key] : '';
                             }
                             $state_info->search	= $search_array;
                         } else {
@@ -3398,6 +3462,15 @@ class grocery_CRUD_States extends grocery_CRUD_Layout
 			return $this->state_url('update_validation/'.$primary_key);
 	}
 
+    protected function getCloneUrl($primary_key = null)
+    {
+        if ($primary_key === null) {
+            return $this->state_url('clone');
+        } else {
+            return $this->state_url('clone/' . $primary_key);
+        }
+    }
+
 	protected function getEditUrl($primary_key = null)
 	{
 		if($primary_key === null)
@@ -3476,7 +3549,7 @@ class grocery_CRUD_States extends grocery_CRUD_Layout
  * @package    	grocery CRUD
  * @copyright  	Copyright (c) 2010 through 2014, John Skoumbourdis
  * @license    	https://github.com/scoumbourdis/grocery-crud/blob/master/license-grocery-crud.txt
- * @version    	1.5.8
+ * @version    	1.6.1
  * @author     	John Skoumbourdis <scoumbourdisj@gmail.com>
  */
 
@@ -3499,7 +3572,7 @@ class Grocery_CRUD extends grocery_CRUD_States
 	 *
 	 * @var	string
 	 */
-	const	VERSION = "1.5.8";
+	const	VERSION = "1.6.1";
 
 	const	JQUERY 			= "jquery-1.11.1.min.js";
 	const	JQUERY_UI_JS 	= "jquery-ui-1.10.3.custom.min.js";
@@ -3568,9 +3641,11 @@ class Grocery_CRUD extends grocery_CRUD_States
 	protected $unset_export			= false;
 	protected $unset_print			= false;
 	protected $unset_back_to_list	= false;
+    protected $unset_clone			= false;
 	protected $unset_columns		= null;
 	protected $unset_add_fields 	= null;
 	protected $unset_edit_fields	= null;
+    protected $unset_clone_fields	= null;
 	protected $unset_read_fields	= null;
 
 	/* Callbacks */
@@ -3583,10 +3658,14 @@ class Grocery_CRUD extends grocery_CRUD_States
 	protected $callback_before_delete 	= null;
 	protected $callback_after_delete 	= null;
 	protected $callback_delete 			= null;
+    protected $callback_before_clone 	= null;
+	protected $callback_after_clone 	= null;
+	protected $callback_clone 			= null;
 	protected $callback_column			= array();
 	protected $callback_add_field		= array();
 	protected $callback_edit_field		= array();
 	protected $callback_read_field		= array();
+	protected $callback_clone_field		= array();
 	protected $callback_upload			= null;
 	protected $callback_before_upload	= null;
 	protected $callback_after_upload	= null;
@@ -3775,6 +3854,7 @@ class Grocery_CRUD extends grocery_CRUD_States
 	public function unset_add()
 	{
 		$this->unset_add = true;
+        $this->unset_clone = true;
 
 		return $this;
 	}
@@ -3859,6 +3939,7 @@ class Grocery_CRUD extends grocery_CRUD_States
 	{
 		$this->unset_add 	= true;
 		$this->unset_edit 	= true;
+        $this->unset_clone = true;
 		$this->unset_delete = true;
 		$this->unset_read	= true;
 		$this->unset_export = true;
@@ -3904,6 +3985,7 @@ class Grocery_CRUD extends grocery_CRUD_States
 
 		$this->unset_add_fields = $args;
 		$this->unset_edit_fields = $args;
+        $this->unset_clone_fields = $args;
 		$this->unset_read_fields = $args;
 
 		return $this;
@@ -3937,6 +4019,19 @@ class Grocery_CRUD extends grocery_CRUD_States
 		return $this;
 	}
 
+    public function unset_clone_fields()
+	{
+		$args = func_get_args();
+
+		if (isset($args[0]) && is_array($args[0])) {
+			$args = $args[0];
+		}
+
+		$this->unset_clone_fields = $args;
+
+		return $this;
+	}
+
 	public function unset_read_fields()
 	{
 		$args = func_get_args();
@@ -3963,6 +4058,26 @@ class Grocery_CRUD extends grocery_CRUD_States
 
 		return $this;
 	}
+
+    /**
+     * Unsets everything that has to do with buttons or links with clone
+     * @access	public
+     * @return	void
+     */
+    public function unset_clone()
+    {
+        $this->unset_clone = true;
+
+        return $this;
+    }
+
+    public function set_clone()
+    {
+        $this->unset_clone = false;
+        $this->unset_add = false;
+
+        return $this;
+    }
 
 	/**
 	 *
@@ -4789,6 +4904,27 @@ class Grocery_CRUD extends grocery_CRUD_States
 
                 break;
 
+
+            case grocery_CRUD_States::STATE_CLONE:
+                if ($this->unset_clone) {
+                    throw new Exception('You don\'t have permissions for this operation', 14);
+                    die();
+                }
+
+                if ($this->theme === null) {
+                    $this->set_theme($this->default_theme);
+                }
+                $this->setThemeBasics();
+
+                $this->set_basic_Layout();
+
+                $state_info = $this->getStateInfo();
+
+                $this->showCloneForm($state_info);
+
+                break;
+
+
 		}
 
 		return $this->get_layout();
@@ -4906,6 +5042,41 @@ class Grocery_CRUD extends grocery_CRUD_States
 		return $this;
 	}
 
+    /**
+     * @param null $callback
+     * @return $this
+     */
+	public function callback_before_clone($callback = null)
+	{
+		$this->callback_before_clone = $callback;
+
+		return $this;
+	}
+
+    /**
+     * @param null $callback
+     * @return $this
+     */
+	public function callback_after_clone($callback = null)
+	{
+   		$this->callback_after_clone = $callback;
+
+   		return $this;
+	}
+
+    /**
+     * @param null $callback
+     * @return $this
+     */
+	public function callback_clone($callback = null)
+	{
+   		$this->callback_clone = $callback;
+
+   		return $this;
+	}
+
+
+
 	/**
 	 *
 	 * Enter description here ...
@@ -4929,6 +5100,7 @@ class Grocery_CRUD extends grocery_CRUD_States
 	{
 		$this->callback_add_field[$field] = $callback;
 		$this->callback_edit_field[$field] = $callback;
+        $this->callback_read_field[$field] = $callback;
 
 		return $this;
 	}
