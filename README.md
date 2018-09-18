@@ -68,6 +68,4 @@ $this->_example_output($output);
 
 This is specific AD-HOC folk for Codeigniter-powered, see original project for.
 
-- Jon LaBelle <contact@jonlabelle.com>
-
-https://github.com/jonlabelle/ci-markdown/issues/new
+- Copyright © John Skoumbourdis - Web-And-Development.com.
