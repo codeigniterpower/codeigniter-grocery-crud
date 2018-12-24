@@ -345,7 +345,7 @@ class grocery_CRUD_Field_Types
 					$file_url = base_url().$field_info->extras->upload_path."/$value";
 
 					$file_url_anchor = '<a href="'.$file_url.'"';
-					if($is_image)
+					if($is_image && $this->config->grocery_crud_file_upload_list_image_preview)
 					{
 						$file_url_anchor .= ' class="image-thumbnail"><img src="'.$file_url.'" height="50px">';
 					}
@@ -2786,6 +2786,7 @@ class grocery_CRUD_Layout extends grocery_CRUD_Model_Driver
 					? true : false;
 
 		$image_class = $is_image ? 'image-thumbnail' : '';
+		$preview_file = $is_image && $this->config->grocery_crud_file_upload_edit_image_preview ? true : false;
 
 		$input = '<span class="fileinput-button qq-upload-button" id="upload-button-'.$unique.'" style="'.$uploader_display_none.'">
 			<span>'.$this->l('form_upload_a_file').'</span>
@@ -2800,7 +2801,7 @@ class grocery_CRUD_Layout extends grocery_CRUD_Model_Driver
 		$input .= "<div id='uploader_$unique' rel='$unique' class='grocery-crud-uploader' style='$uploader_display_none'></div>";
 		$input .= "<div id='success_$unique' class='upload-success-url' style='$file_display_none padding-top:7px;'>";
 		$input .= "<a href='".$file_url."' id='file_$unique' class='open-file";
-		$input .= $is_image ? " $image_class'><img src='".$file_url."' height='50px'>" : "' target='_blank'>$value";
+		$input .= $preview_file ? " $image_class'><img src='".$file_url."' height='50px'>" : "' target='_blank'>$value";
 		$input .= "</a> ";
 		$input .= "<a href='javascript:void(0)' id='delete_$unique' class='delete-anchor'>".$this->l('form_upload_delete')."</a> ";
 		$input .= "</div><div style='clear:both'></div>";
@@ -4572,6 +4573,9 @@ class Grocery_CRUD extends grocery_CRUD_States
 		$this->config->default_per_page		= $ci->config->item('grocery_crud_default_per_page');
 		$this->config->file_upload_allow_file_types	= $ci->config->item('grocery_crud_file_upload_allow_file_types');
 		$this->config->file_upload_max_file_size	= $ci->config->item('grocery_crud_file_upload_max_file_size');
+		$this->config->grocery_crud_file_upload_list_image_preview = $ci->config->item('grocery_crud_file_upload_list_image_preview');
+		$this->config->grocery_crud_edit_upload_list_image_preview = $ci->config->item('grocery_crud_file_upload_edit_image_preview');
+		$this->config->grocery_crud_view_upload_list_image_preview = $ci->config->item('grocery_crud_file_upload_view_image_preview');
 		$this->config->default_text_editor	= $ci->config->item('grocery_crud_default_text_editor');
 		$this->config->text_editor_type		= $ci->config->item('grocery_crud_text_editor_type');
 		$this->config->character_limiter	= $ci->config->item('grocery_crud_character_limiter');
