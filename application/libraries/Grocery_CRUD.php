@@ -195,6 +195,35 @@ class grocery_CRUD_Field_Types
 				}
 			}
 
+		if (!empty($this->read_fields)) {
+		    foreach ($this->read_fields as $field_object) {
+		        $field_name = isset($field_object->field_name) ? $field_object->field_name : $field_object;
+
+		        if (!isset($types[$field_name]))//Doesn't exist in the database? Create it for the CRUD
+		        {
+		            $extras = false;
+		            if ($this->change_field_type !== null && isset($this->change_field_type[$field_name])) {
+		                $field_type = $this->change_field_type[$field_name];
+		                $extras = $field_type->extras;
+		            }
+
+		            $field_info = (object)array(
+		                'name' => $field_name,
+		                'crud_type' => $this->change_field_type !== null && isset($this->change_field_type[$field_name]) ?
+		                    $this->change_field_type[$field_name]->type :
+		                    'string',
+		                'display_as' => isset($this->display_as[$field_name]) ?
+		                    $this->display_as[$field_name] :
+		                    ucfirst(str_replace("_", " ", $field_name)),
+		                'required' => !empty($this->required_fields) && in_array($field_name, $this->required_fields) ? true : false,
+		                'extras' => $extras
+		            );
+
+		            $types[$field_name] = $field_info;
+		        }
+		    }
+		}
+
 		$this->field_types = $types;
 
 		return $this->field_types;
