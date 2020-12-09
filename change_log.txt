@@ -1,3 +1,5 @@
+v1.6.3.1
+    - Updating jQuery version to 1.12.4 that still supports any web browser
 v1.6.3
    - #465: Translation for Spanish Uruguay by @mlopezcoria
    - #470: Update Polish translation by @tikky
