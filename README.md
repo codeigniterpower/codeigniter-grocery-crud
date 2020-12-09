@@ -11,12 +11,12 @@ For Original more information, visit http://www.grocerycrud.com
 
 ## INSTALLING
 
-Comes included with CodeigniterPowered, but for CI 2 or CI3:
+Comes included with CodeigniterPowered, but for CI2 or CI3:
 
 **Requirements**
 
 * Codeigniter 2.x or 3.x
-* PHP 5.3
+* PHP 5.3; GD module need for image loading and preview
 
 **Manual controlled install**
 
@@ -24,7 +24,7 @@ Comes included with CodeigniterPowered, but for CI 2 or CI3:
 
 `wget https://github.com/codeigniterpower/codeigniter-grocery-crud/archive/master.tar.gz -O ci-grocerycrud.tar.gz`
 
-**2)** The contents must be the files at that places:
+**2)** Uncompress the downloaded file, the contents must be the files at that places:
 
 * `config/grocery_crud.php` 
 * `libraries/Grocery_CRUD.php`
