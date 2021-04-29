@@ -332,7 +332,7 @@ class Grocery_crud_model  extends CI_Model  {
     	{
     		$this->db->order_by("{$field_info->relation_table}.{$field_info->priority_field_relation_table}");
     	}
-    	$this->db->where($field_info->primary_key_alias_to_this_table, $primary_key_value);
+    	$this->db->where('`'.$field_info->relation_table.'`.'.$field_info->primary_key_alias_to_this_table, $primary_key_value);
     	$this->db->join(
     			$field_info->selection_table,
     			"{$field_info->relation_table}.{$field_info->primary_key_alias_to_selection_table} = {$field_info->selection_table}.{$selection_primary_key}"
